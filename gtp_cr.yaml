@@ -1,0 +1,19 @@
+apiVersion: "citrix.com/v1beta1"
+kind: globaltrafficpolicy
+metadata:
+  name: gtp1
+  namespace: default
+spec:
+  serviceType: 'HTTP'
+  hosts:
+  - host: 'app1.com'
+    policy:
+      trafficPolicy: 'CANARY'
+      secLbMethod: 'ROUNDROBIN'
+      targets:
+      - destination: 'app1.default.east.cluster1'
+        weight: 100
+      monitor:
+      - monType: http
+        uri: ''
+        respCode: 200
