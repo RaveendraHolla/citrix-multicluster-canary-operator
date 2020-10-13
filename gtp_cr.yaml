@@ -4,6 +4,7 @@ metadata:
   name: gtp1
   namespace: default
 spec:
+  status: {}
   serviceType: 'HTTP'
   hosts:
   - host: 'app1.com'
