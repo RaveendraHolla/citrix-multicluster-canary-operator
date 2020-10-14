@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: canary-operator
+  labels:
+    app: operator
+spec:
+  selector:
+    matchLabels:
+      app: operator
+  template:
+    metadata:
+      labels:
+        app: operator
+    spec:
+      serviceAccountName: mcc-k8s-role
+      containers:
+      - name: proxycontainer
+        image: lachlanevenson/k8s-kubectl
+        imagePullPolicy: IfNotPresent
+        command: ["kubectl","proxy","--port=8001"]
+      - name: canary
+        image: citrix-canary-operator
+        imagePullPolicy: IfNotPresent
+        command: [ "/bin/bash", "-c", "--" ]
+        args: [ "apt-get -y install vim;while true; do sleep 30; done;" ]
+        env:
+          - name: res_namespace
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace

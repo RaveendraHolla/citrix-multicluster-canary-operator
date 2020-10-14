@@ -1,4 +1,4 @@
-apiVersion: clustermigration.com/v1
+apiVersion: citrix.com/v1beta1
 kind: multiclustercanary
 metadata:
   name: canary-for-frontend-svc

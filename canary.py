@@ -3,7 +3,6 @@ import os
 import json
 import logging
 import sys
-import yaml
 import copy
 import time
 
@@ -47,15 +46,19 @@ def increase_traffic_percentage(gtp_dict, gtp_old_destination, gtp_new_destinati
 
     return completed, new_percentage
 
-def apply_gtp(gtp_dict):
-    url = '{}/globaltrafficpolicies'.format(base_url)
+def apply_gtp(gtp_dict, gtp_name, gtp_namespace):
+    url = '{}/apis/citrix.com/v1beta1/namespaces/{}/globaltrafficpolicies/{}'.format(base_url, gtp_namespace, gtp_name)
+    retval = requests.delete(url)
+    if gtp_dict['metadata'].get('resourceVersion') is not None:
+        gtp_dict['metadata'].pop('resourceVersion')
+    url = '{}/apis/citrix.com/v1beta1/namespaces/{}/globaltrafficpolicies'.format(base_url, gtp_namespace)
     header = {"Content-Type": "application/json"}
-    requests.post(url, headers=header, data=gtp_dict)
+    requests.post(url, headers=header, json=gtp_dict)
 
 def read_existing_gtp(gtp_name, gtp_namespace):
-    url = '{}/api/v1/namespaces/{}/multiclustercanarys/{}'.format(base_url, gtp_namespace, gtp_name)
+    url = '{}/apis/citrix.com/v1beta1/namespaces/{}/globaltrafficpolicies/{}'.format(base_url, gtp_namespace, gtp_name)
     r = requests.get(url)
-    return r
+    return r.json()
 
 def calculate_health_score():
     return 95
@@ -67,13 +70,13 @@ def handle_multicluster_canary_crd(canary_cr):
     completed = False
     while completed is False:
         completed, percentage = increase_traffic_percentage(gtp_dict, canary_cr['spec']['gtpOldDestination'], canary_cr['spec']['gtpNewDestination'])
-        apply_gtp(gtp_dict)
+        apply_gtp(gtp_dict, canary_cr['spec']['gtpName'], canary_cr['spec']['gtpNamespace'])
         log.info(f"increased the percentage to {percentage}")
         time.sleep(1)
         health_score = calculate_health_score()
         if health_score < canary_cr['spec']['healthThreshold']:
             log.info(f"Health score dropped to {health_score}. Rolling back now.")
-            apply_gtp(original_gtp_dict)
+            apply_gtp(original_gtp_dict, canary_cr['spec']['gtpName'], canary_cr['spec']['gtpNamespace'])
             return False
     log.info("Migration is successful")
     return True
@@ -81,8 +84,7 @@ def handle_multicluster_canary_crd(canary_cr):
 
 def watch_loop():
     log.info("watching for multicluster canary CRD...")
-    url = '{}/api/v1/namespaces/{}/multiclustercanary?watch=true"'.format(
-        base_url)
+    url = '{}/apis/citrix.com/v1beta1/multiclustercanaries?watch=true'.format(base_url)
     r = requests.get(url, stream=True)
     # We issue the request to the API endpoint and keep the conenction open
     for line in r.iter_lines():
@@ -93,4 +95,4 @@ def watch_loop():
             handle_multicluster_canary_crd(obj['object'])
 
 if __name__ == "__main__": 
-    event_loop()
+    watch_loop()
