@@ -20,7 +20,7 @@ namespace = os.getenv("res_namespace", "default")
 
 
 def increase_traffic_percentage(gtp_dict, gtp_old_destination, gtp_new_destination):
-    '''Increase percentage of traffic for new cluster'''
+    '''This will modify gtp_dict to ncrease percentage of traffic for new cluster'''
     new_percentage = 0
     old_percentage = 0
     completed = False
@@ -47,6 +47,7 @@ def increase_traffic_percentage(gtp_dict, gtp_old_destination, gtp_new_destinati
     return completed, new_percentage
 
 def apply_gtp(gtp_dict, gtp_name, gtp_namespace):
+    '''This will delete the existing GTP and create the new GTP. TODO: Patching existing GTP'''
     url = '{}/apis/citrix.com/v1beta1/namespaces/{}/globaltrafficpolicies/{}'.format(base_url, gtp_namespace, gtp_name)
     retval = requests.delete(url)
     if gtp_dict['metadata'].get('resourceVersion') is not None:
@@ -61,6 +62,7 @@ def read_existing_gtp(gtp_name, gtp_namespace):
     return r.json()
 
 def calculate_health_score():
+    '''Fetch the counters and calculate the health score and return that value'''
     return 95
 
 def handle_multicluster_canary_crd(canary_cr):
@@ -75,7 +77,7 @@ def handle_multicluster_canary_crd(canary_cr):
         time.sleep(1)
         health_score = calculate_health_score()
         if health_score < canary_cr['spec']['healthThreshold']:
-            log.info(f"Health score dropped to {health_score}. Rolling back now.")
+            log.info(f"Health score dropped to {health_score}. Migration failed. Rolling back now.")
             apply_gtp(original_gtp_dict, canary_cr['spec']['gtpName'], canary_cr['spec']['gtpNamespace'])
             return False
     log.info("Migration is successful")
