@@ -20,7 +20,7 @@ namespace = os.getenv("res_namespace", "default")
 external_url = os.getenv("External_kubernetes_url", base_url)
 external_token = os.getenv("External_Kuubernetes_jwt_token")
 
-def rm_gtp_dict(gtp_dict)
+def rm_gtp_crd(gtp_dict):
     log.info("Removing local GTP as remote GTP (name:{} namespace:{}) got removed.".format(gtp_dict['metadata']['name'], gtp_dict['metadata']['namespace']))
     url = '{}/apis/citrix.com/v1beta1/namespaces/{}/globaltrafficpolicies/{}'.format(base_url, gtp_dict['metadata']['namespace'], gtp_dict['metadata']['name'])
     retval = requests.delete(url)
@@ -36,7 +36,7 @@ def add_gtp_crd(gtp_dict):
 def watch_loop():
     log.info("watching for changes for remote GTP CRDs...")
     url = '{}/apis/citrix.com/v1beta1/globaltrafficpolicies?watch=true'.format(external_url)
-    r = requests.get(url, headers = {"Authorization":"Bearer " + external_token}, stream=True)
+    r = requests.get(url, headers = {"Authorization":"Bearer " + external_token}, stream=True, verify=False)
     # We issue the request to the API endpoint and keep the conenction open
     for line in r.iter_lines():
         obj = json.loads(line)
