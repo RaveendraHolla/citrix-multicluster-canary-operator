@@ -29,6 +29,12 @@ spec:
             gtpNewDestination:
               type: string
               description: "New destination cluster in app.namespace.region.cluster format, to which app traffic will be migrated"
+            healthMonitoringLbName:
+              type: string
+              description: "Name of the LB vserver that has to be monitored on the new cluster for qualifying the quality of the new deployment"
+            healthMonitoringInterval:
+              type: integer
+              description: "Monitoring interval in seconds"
             healthThreshold:
               type: integer
               description: "Health threshold in percentage. If health score goes below this value during migration, a rollback will be triggered"

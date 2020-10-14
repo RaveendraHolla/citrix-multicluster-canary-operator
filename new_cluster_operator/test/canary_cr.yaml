@@ -7,4 +7,6 @@ spec:
   gtpNamespace: default
   gtpOldDestination: 'app1.default.east.cluster1'
   gtpNewDestination: 'app1.default.west.cluster2'
+  healthMonitoringLbName: "lb1"
+  healthMonitoringInterval: 1
   healthThreshold: 90

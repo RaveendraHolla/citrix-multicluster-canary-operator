@@ -1,4 +1,5 @@
 import requests
+from requests.adapters import HTTPAdapter
 import os
 import json
 import logging
@@ -17,6 +18,9 @@ log.setLevel(logging.INFO)
 base_url = "http://127.0.0.1:8001"
 
 namespace = os.getenv("res_namespace", "default")
+ingress_adc_ip = os.getenv("NS_IP")
+ingress_adc_user = os.getenv("NS_USER")
+ingress_adc_password = os.getenv("NS_PASSWORD")
 
 
 def increase_traffic_percentage(gtp_dict, gtp_old_destination, gtp_new_destination):
@@ -61,21 +65,35 @@ def read_existing_gtp(gtp_name, gtp_namespace):
     r = requests.get(url)
     return r.json()
 
-def calculate_health_score():
+def calculate_health_score(lbname, interval):
     '''Fetch the counters and calculate the health score and return that value'''
-    return 95
+    # save the statistics of the lb vserver representing the service.
+    session = requests.Session()
+    session.mount("http://", HTTPAdapter(max_retries=3))
+    session.auth = (ingress_adc_user, ingress_adc_password)
+    adc_stat_url = "http://{}:80:/nitro/v1/stat/lbsvserver/{}".format(ingress_adc_ip, lbname)
+    starting_stat = session.get(adc_stat_url)
+    starting_stat = original_stat.json()
+    # wait for the traffic to hit new lb vserver.
+    time.sleep(interval)
+    # get the statistics again.
+    final_stat = session.get(adc_stat_url)
+    final_stat = latest_stat.json()
+    # compare them. Decide the health.
+    invalidrequestresponse = int(final_stat["lbvserver"]["invalidrequestresponse"]) + int(final_stat["lbvserver"]["invalidrequestresponsedropped"]) - int(starting_stat["lbvserver"]["invalidrequestresponse"]) + int(starting_stat["lbvserver"]["invalidrequestresponsedropped"])
+    totalrequests = int(final_stat["lbvserver"]["totalrequests"]) + int(final_stat["lbvserver"]["totalrequests"]) - int(starting_stat["lbvserver"]["totalrequests"]) + int(starting_stat["lbvserver"]["totalrequests"])
+    return (totalrequests - invalidrequestresponse)*100/totalrequests if totalrequests > 0 else 100
 
 def handle_multicluster_canary_crd(canary_cr):
     log.info(f"handling multicluster canary for GTP {canary_cr['spec']['gtpName']}")
     gtp_dict = read_existing_gtp(canary_cr['spec']['gtpName'], canary_cr['spec']['gtpNamespace'])
-    original_gtp_dict = copy.copy(gtp_dict)
+    original_gtp_dict = copy.deepcopy(gtp_dict)
     completed = False
     while completed is False:
         completed, percentage = increase_traffic_percentage(gtp_dict, canary_cr['spec']['gtpOldDestination'], canary_cr['spec']['gtpNewDestination'])
         apply_gtp(gtp_dict, canary_cr['spec']['gtpName'], canary_cr['spec']['gtpNamespace'])
         log.info(f"increased the percentage to {percentage}")
-        time.sleep(1)
-        health_score = calculate_health_score()
+        health_score = calculate_health_score(canary_cr['spec']['healthMonitoringLbName'], canary_cr['spec']['healthMonitoringInterval'])
         if health_score < canary_cr['spec']['healthThreshold']:
             log.info(f"Health score dropped to {health_score}. Migration failed. Rolling back now.")
             apply_gtp(original_gtp_dict, canary_cr['spec']['gtpName'], canary_cr['spec']['gtpNamespace'])
