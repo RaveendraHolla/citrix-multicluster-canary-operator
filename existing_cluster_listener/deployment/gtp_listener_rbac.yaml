@@ -1,0 +1,31 @@
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: gl-k8s-role
+rules:
+  - apiGroups: ["citrix.com"]
+    resources: ["globaltrafficpolicies"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+
+---
+
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: gl-k8s-role
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: gl-k8s-role
+subjects:
+- kind: ServiceAccount
+  name: gl-k8s-role
+  namespace: default
+
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gl-k8s-role
+  namespace: default
