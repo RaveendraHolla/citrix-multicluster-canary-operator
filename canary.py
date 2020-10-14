@@ -64,7 +64,7 @@ def calculate_health_score():
     return 95
 
 def handle_multicluster_canary_crd(canary_cr):
-    log.info("handling multicluster canary for GTP {canary_cr['spec']['gtpName']}")
+    log.info(f"handling multicluster canary for GTP {canary_cr['spec']['gtpName']}")
     gtp_dict = read_existing_gtp(canary_cr['spec']['gtpName'], canary_cr['spec']['gtpNamespace'])
     original_gtp_dict = copy.copy(gtp_dict)
     completed = False
