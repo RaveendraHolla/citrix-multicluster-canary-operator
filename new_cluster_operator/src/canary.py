@@ -71,48 +71,69 @@ def calculate_health_score(lbname, interval):
     session = requests.Session()
     session.mount("http://", HTTPAdapter(max_retries=3))
     session.auth = (ingress_adc_user, ingress_adc_password)
-    adc_stat_url = "http://{}:80:/nitro/v1/stat/lbsvserver/{}".format(ingress_adc_ip, lbname)
+    adc_stat_url = "http://{}:80/nitro/v1/stat/lbvserver/{}".format(ingress_adc_ip, lbname)
     starting_stat = session.get(adc_stat_url)
-    starting_stat = original_stat.json()
+    starting_stat = starting_stat.json()
     # wait for the traffic to hit new lb vserver.
     time.sleep(interval)
     # get the statistics again.
     final_stat = session.get(adc_stat_url)
-    final_stat = latest_stat.json()
+    final_stat = final_stat.json()
     # compare them. Decide the health.
-    invalidrequestresponse = int(final_stat["lbvserver"]["invalidrequestresponse"]) + int(final_stat["lbvserver"]["invalidrequestresponsedropped"]) - int(starting_stat["lbvserver"]["invalidrequestresponse"]) + int(starting_stat["lbvserver"]["invalidrequestresponsedropped"])
-    totalrequests = int(final_stat["lbvserver"]["totalrequests"]) + int(final_stat["lbvserver"]["totalrequests"]) - int(starting_stat["lbvserver"]["totalrequests"]) + int(starting_stat["lbvserver"]["totalrequests"])
+    invalidrequestresponse = int(final_stat["lbvserver"][0]["invalidrequestresponse"]) + int(final_stat["lbvserver"][0]["invalidrequestresponsedropped"]) - int(starting_stat["lbvserver"][0]["invalidrequestresponse"]) + int(starting_stat["lbvserver"][0]["invalidrequestresponsedropped"])
+    totalrequests = int(final_stat["lbvserver"][0]["totalrequests"]) + int(final_stat["lbvserver"][0]["totalrequests"]) - int(starting_stat["lbvserver"][0]["totalrequests"]) + int(starting_stat["lbvserver"][0]["totalrequests"])
     return (totalrequests - invalidrequestresponse)*100/totalrequests if totalrequests > 0 else 100
 
 def handle_multicluster_canary_crd(canary_cr):
-    log.info(f"handling multicluster canary for GTP {canary_cr['spec']['gtpName']}")
-    gtp_dict = read_existing_gtp(canary_cr['spec']['gtpName'], canary_cr['spec']['gtpNamespace'])
-    original_gtp_dict = copy.deepcopy(gtp_dict)
-    completed = False
-    while completed is False:
-        completed, percentage = increase_traffic_percentage(gtp_dict, canary_cr['spec']['gtpOldDestination'], canary_cr['spec']['gtpNewDestination'])
-        apply_gtp(gtp_dict, canary_cr['spec']['gtpName'], canary_cr['spec']['gtpNamespace'])
-        log.info(f"increased the percentage to {percentage}")
-        health_score = calculate_health_score(canary_cr['spec']['healthMonitoringLbName'], canary_cr['spec']['healthMonitoringInterval'])
-        if health_score < canary_cr['spec']['healthThreshold']:
-            log.info(f"Health score dropped to {health_score}. Migration failed. Rolling back now.")
-            apply_gtp(original_gtp_dict, canary_cr['spec']['gtpName'], canary_cr['spec']['gtpNamespace'])
-            return False
-    log.info("Migration is successful")
-    return True
+    try:
+        log.info(f"handling multicluster canary for GTP {canary_cr['spec']['gtpName']}")
+        gtp_dict = read_existing_gtp(canary_cr['spec']['gtpName'], canary_cr['spec']['gtpNamespace'])
+        original_gtp_dict = copy.deepcopy(gtp_dict)
+        completed = False
+        while completed is False:
+            completed, percentage = increase_traffic_percentage(gtp_dict, canary_cr['spec']['gtpOldDestination'], canary_cr['spec']['gtpNewDestination'])
+            apply_gtp(gtp_dict, canary_cr['spec']['gtpName'], canary_cr['spec']['gtpNamespace'])
+            log.info(f"increased the percentage to {percentage}")
+            health_score = calculate_health_score(canary_cr['spec']['healthMonitoringLbName'], canary_cr['spec']['healthMonitoringInterval'])
+            if health_score < canary_cr['spec']['healthThreshold']:
+                log.info(f"Health score dropped to {health_score}. Migration failed. Rolling back now.")
+                apply_gtp(original_gtp_dict, canary_cr['spec']['gtpName'], canary_cr['spec']['gtpNamespace'])
+                return False
+        log.info("Migration is successful")
+        return True
+    except Exception as e:
+        log.info(f"Exception during handling multicluster canary for GTP {canary_cr['spec']['gtpName']}")
+        return False
 
 
 def watch_loop():
     log.info("watching for multicluster canary CRD...")
-    url = '{}/apis/citrix.com/v1beta1/multiclustercanaries?watch=true'.format(base_url)
-    r = requests.get(url, stream=True)
-    # We issue the request to the API endpoint and keep the conenction open
-    for line in r.iter_lines():
-        obj = json.loads(line)
-        # We examine the type part of the object to see if it is MODIFIED
-        event_type = obj['type']
-        if event_type == "ADDED":
-            handle_multicluster_canary_crd(obj['object'])
+    resource_version = None
+    while True:
+        try:
+            if resource_version is None:
+                url = '{}/apis/citrix.com/v1beta1/multiclustercanaries?watch=true'.format(base_url)
+            else:
+                url = '{}/apis/citrix.com/v1beta1/multiclustercanaries?resourceVersion={}&watch=true'.format(base_url, resource_version)
+            r = requests.get(url, stream=True)
+            # We issue the request to the API endpoint and keep the conenction open
+            for line in r.iter_lines():
+                obj = json.loads(line)
+                if obj.get("type") == "ERROR":
+                    log.info("ERROR from Kube API server: %s", obj)
+                    resource_version = None
+                    time.sleep(1)
+                # We examine the type part of the object to see if it is MODIFIED
+                else:
+                    event_type = obj['type']
+                    if event_type == "ADDED":
+                        handle_multicluster_canary_crd(obj['object'])
+                    resource_version = obj['object']['metadata']['resourceVersion']
+        except Exception as e:
+            log.info("Exception during listening for multi-cluster canary CRDs. %s", e)
+            time.sleep(1)
+            log.info("Retrying...")
+
 
 if __name__ == "__main__": 
     watch_loop()
