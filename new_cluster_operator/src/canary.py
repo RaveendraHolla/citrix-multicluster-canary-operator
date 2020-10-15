@@ -71,17 +71,17 @@ def calculate_health_score(lbname, interval):
     session = requests.Session()
     session.mount("http://", HTTPAdapter(max_retries=3))
     session.auth = (ingress_adc_user, ingress_adc_password)
-    adc_stat_url = "http://{}:80:/nitro/v1/stat/lbsvserver/{}".format(ingress_adc_ip, lbname)
+    adc_stat_url = "http://{}:80/nitro/v1/stat/lbvserver/{}".format(ingress_adc_ip, lbname)
     starting_stat = session.get(adc_stat_url)
-    starting_stat = original_stat.json()
+    starting_stat = starting_stat.json()
     # wait for the traffic to hit new lb vserver.
     time.sleep(interval)
     # get the statistics again.
     final_stat = session.get(adc_stat_url)
-    final_stat = latest_stat.json()
+    final_stat = final_stat.json()
     # compare them. Decide the health.
-    invalidrequestresponse = int(final_stat["lbvserver"]["invalidrequestresponse"]) + int(final_stat["lbvserver"]["invalidrequestresponsedropped"]) - int(starting_stat["lbvserver"]["invalidrequestresponse"]) + int(starting_stat["lbvserver"]["invalidrequestresponsedropped"])
-    totalrequests = int(final_stat["lbvserver"]["totalrequests"]) + int(final_stat["lbvserver"]["totalrequests"]) - int(starting_stat["lbvserver"]["totalrequests"]) + int(starting_stat["lbvserver"]["totalrequests"])
+    invalidrequestresponse = int(final_stat["lbvserver"][0]["invalidrequestresponse"]) + int(final_stat["lbvserver"][0]["invalidrequestresponsedropped"]) - int(starting_stat["lbvserver"][0]["invalidrequestresponse"]) + int(starting_stat["lbvserver"][0]["invalidrequestresponsedropped"])
+    totalrequests = int(final_stat["lbvserver"][0]["totalrequests"]) + int(final_stat["lbvserver"][0]["totalrequests"]) - int(starting_stat["lbvserver"][0]["totalrequests"]) + int(starting_stat["lbvserver"][0]["totalrequests"])
     return (totalrequests - invalidrequestresponse)*100/totalrequests if totalrequests > 0 else 100
 
 def handle_multicluster_canary_crd(canary_cr):
