@@ -43,7 +43,7 @@ def get_resource_version():
     try:
         url = '{}/apis/citrix.com/v1beta1/globaltrafficpolicies'.format(external_url)
         r = requests.get(url, headers = {"Authorization":"Bearer " + external_token}, verify=False)
-        if if r.status_code == 200:
+        if r.status_code == 200:
             message = r.json()
             return message['metadata']['resourceVersion']
         else:
@@ -56,23 +56,23 @@ def get_resource_version():
 def watch_loop():
     log.info("watching for changes for remote GTP CRDs...")
     while True:
-    try:
-        resource_version = get_resource_version()
-        url = '{}/apis/citrix.com/v1beta1/globaltrafficpolicies?resourceVersion={}&watch=true'.format(external_url, resource_version)
-        r = requests.get(url, headers = {"Authorization":"Bearer " + external_token}, stream=True, verify=False)
-        # We issue the request to the API endpoint and keep the conenction open
-        for line in r.iter_lines():
-            obj = json.loads(line)
-            # We examine the type part of the object to see if it is MODIFIED
-            if obj.get("type") == "ERROR":
-                log.info("ERROR from Kube API server: %s", obj)
-                time.sleep(1)
-            else:
-                event_type = obj.get('type')
-                if event_type == "ADDED":
-                    add_gtp_crd(obj['object'])
-                if event_type == "DELETED":
-                    rm_gtp_crd(obj['object'])
+        try:
+            resource_version = get_resource_version()
+            url = '{}/apis/citrix.com/v1beta1/globaltrafficpolicies?resourceVersion={}&watch=true'.format(external_url, resource_version)
+            r = requests.get(url, headers = {"Authorization":"Bearer " + external_token}, stream=True, verify=False)
+            # We issue the request to the API endpoint and keep the conenction open
+            for line in r.iter_lines():
+                obj = json.loads(line)
+                # We examine the type part of the object to see if it is MODIFIED
+                if obj.get("type") == "ERROR":
+                    log.info("ERROR from Kube API server: %s", obj)
+                    time.sleep(1)
+                else:
+                    event_type = obj.get('type')
+                    if event_type == "ADDED":
+                        add_gtp_crd(obj['object'])
+                    if event_type == "DELETED":
+                        rm_gtp_crd(obj['object'])
         except Exception as e:
             log.info("Exception during listening for multi-cluster canary CRDs. %s", e)
             time.sleep(1)
