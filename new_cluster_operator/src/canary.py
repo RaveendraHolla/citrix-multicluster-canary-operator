@@ -17,15 +17,19 @@ log.setLevel(logging.INFO)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Kubernetes URL.
-base_url = "https://"+os.getenv("KUBERNETES_SERVICE_HOST") + ":" + os.getenv("KUBERNETES_SERVICE_PORT")
-# Read serviceaccount access token.
-with open("/var/run/secrets/kubernetes.io/serviceaccount/token") as f:
+base_url = token = namespace = ingress_adc_ip = ingress_adc_user = ingress_adc_password = None
+
+def init_kubernetes_params():
+    namespace = os.getenv("res_namespace", "default")
+    base_url = "https://"+os.getenv("KUBERNETES_SERVICE_HOST") + ":" + os.getenv("KUBERNETES_SERVICE_PORT")
+    # Read serviceaccount access token.
+    with open("/var/run/secrets/kubernetes.io/serviceaccount/token") as f:
         token = f.read()
 
-namespace = os.getenv("res_namespace", "default")
-ingress_adc_ip = os.getenv("NS_IP")
-ingress_adc_user = os.getenv("NS_USER")
-ingress_adc_password = os.getenv("NS_PASSWORD")
+def init_adc_params():
+    ingress_adc_ip = os.getenv("NS_IP")
+    ingress_adc_user = os.getenv("NS_USER")
+    ingress_adc_password = os.getenv("NS_PASSWORD")
 
 
 def increase_traffic_percentage(gtp_dict, gtp_old_destination, gtp_new_destination):
@@ -89,37 +93,37 @@ def calculate_health_score(lbname, interval):
     totalrequests = int(final_stat["lbvserver"][0]["totalrequests"]) + int(final_stat["lbvserver"][0]["totalrequests"]) - int(starting_stat["lbvserver"][0]["totalrequests"]) + int(starting_stat["lbvserver"][0]["totalrequests"])
     return (totalrequests - invalidrequestresponse)*100/totalrequests if totalrequests > 0 else 100
 
-def handle_multicluster_canary_crd(canary_cr):
+def handle_canary_crd(canary_cr):
     try:
-        log.info(f"handling multicluster canary for GTP {canary_cr['spec']['gtpName']}")
+        log.info(f"Handling canary CRD {canary_cr['metadata']['name']} for Global Traffic Policy: {canary_cr['spec']['gtpName']}")
         gtp_dict = read_existing_gtp(canary_cr['spec']['gtpName'], canary_cr['spec']['gtpNamespace'])
         original_gtp_dict = copy.deepcopy(gtp_dict)
         completed = False
         while completed is False:
-            completed, percentage = increase_traffic_percentage(gtp_dict, canary_cr['spec']['gtpOldDestination'], canary_cr['spec']['gtpNewDestination'])
+            completed, percentage = increase_traffic_percentage(gtp_dict, canary_cr['spec']['sourceCluster'], canary_cr['spec']['destinationCluster'])
             apply_gtp(gtp_dict, canary_cr['spec']['gtpName'], canary_cr['spec']['gtpNamespace'])
             log.info(f"increased the percentage to {percentage}")
             health_score = calculate_health_score(canary_cr['spec']['healthMonitoringLbName'], canary_cr['spec']['healthMonitoringInterval'])
-            if health_score < canary_cr['spec']['healthThreshold']:
+            if health_score < canary_cr['spec']['healthScoreThreshold']:
                 log.info(f"Health score dropped to {health_score}. Migration failed. Rolling back now.")
                 apply_gtp(original_gtp_dict, canary_cr['spec']['gtpName'], canary_cr['spec']['gtpNamespace'])
                 return False
         log.info("Migration is successful")
         return True
     except Exception as e:
-        log.info(f"Exception during handling multicluster canary for GTP {canary_cr['spec']['gtpName']}")
+        log.info(f"Exception during handling canary for GTP {canary_cr['spec']['gtpName']}")
         return False
 
 
 def watch_loop():
-    log.info("watching for multicluster canary CRD...")
+    log.info("watching for canary CRDs...")
     resource_version = None
     while True:
         try:
             if resource_version is None:
-                url = '{}/apis/citrix.com/v1beta1/multiclustercanaries?watch=true'.format(base_url)
+                url = '{}/apis/citrix.com/v1beta1/canaries?watch=true'.format(base_url)
             else:
-                url = '{}/apis/citrix.com/v1beta1/multiclustercanaries?resourceVersion={}&watch=true'.format(base_url, resource_version)
+                url = '{}/apis/citrix.com/v1beta1/canaries?resourceVersion={}&watch=true'.format(base_url, resource_version)
             r = requests.get(url, headers = {"Authorization":"Bearer " + token}, stream=True, verify=False)
             # We issue the request to the API endpoint and keep the conenction open
             for line in r.iter_lines():
@@ -132,13 +136,15 @@ def watch_loop():
                 else:
                     event_type = obj['type']
                     if event_type == "ADDED":
-                        handle_multicluster_canary_crd(obj['object'])
+                        handle_canary_crd(obj['object'])
                     resource_version = obj['object']['metadata']['resourceVersion']
         except Exception as e:
-            log.info("Exception during listening for multi-cluster canary CRDs. %s", e)
+            log.info("Exception during listening for canary CRDs. %s", e)
             time.sleep(1)
             log.info("Retrying...")
 
 
 if __name__ == "__main__": 
+    init_kubernetes_params()
+    init_adc_params()
     watch_loop()

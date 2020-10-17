@@ -1,17 +1,15 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: multiclustercanaries.citrix.com
+  name: canaries.citrix.com
 spec:
   scope: Namespaced
   group: citrix.com
   version: v1beta1
   names:
-    kind: multiclustercanary
-    singular: multiclustercanary
-    plural: multiclustercanaries
-    shortNames:
-    - mcc
+    kind: canary
+    singular: canary
+    plural: canaries
   validation:
     openAPIV3Schema:
       properties:
@@ -23,10 +21,10 @@ spec:
             gtpNamespace:
               type: string
               description: "Namespace of the Global Traffic Policy on which canary will be applied"
-            gtpOldDestination:
+            sourceCluster:
               type: string
               description: "Old destination cluster in app.namespace.region.cluster format, from which app traffic will be migrated"
-            gtpNewDestination:
+            destinationCluster:
               type: string
               description: "New destination cluster in app.namespace.region.cluster format, to which app traffic will be migrated"
             healthMonitoringLbName:
@@ -35,7 +33,7 @@ spec:
             healthMonitoringInterval:
               type: integer
               description: "Monitoring interval in seconds"
-            healthThreshold:
+            healthScoreThreshold:
               type: integer
               description: "Health threshold in percentage. If health score goes below this value during migration, a rollback will be triggered"
               minimum: 1

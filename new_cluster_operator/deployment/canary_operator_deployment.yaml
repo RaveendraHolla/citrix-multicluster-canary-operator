@@ -13,7 +13,7 @@ spec:
       labels:
         app: operator
     spec:
-      serviceAccountName: mcc-k8s-role
+      serviceAccountName: canary-k8s-role
       containers:
       - name: canary
         image: citrix-canary-operator

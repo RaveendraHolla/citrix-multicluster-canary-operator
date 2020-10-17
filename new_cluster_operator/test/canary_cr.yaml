@@ -1,12 +1,12 @@
 apiVersion: citrix.com/v1beta1
-kind: multiclustercanary
+kind: canary
 metadata:
-  name: canary-for-frontend-svc
+  name: canary-for-app1-svc
 spec:
   gtpName: gtp1
   gtpNamespace: default
-  gtpOldDestination: 'app1.default.east.cluster1'
-  gtpNewDestination: 'app1.default.west.cluster2'
+  sourceCluster: 'app1.default.east.cluster1'
+  destinationCluster: 'app1.default.west.cluster2'
   healthMonitoringLbName: "lb1"
   healthMonitoringInterval: 1
-  healthThreshold: 90
+  healthScoreThreshold: 90

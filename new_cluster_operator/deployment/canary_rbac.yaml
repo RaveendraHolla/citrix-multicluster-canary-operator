@@ -1,10 +1,10 @@
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
-  name: mcc-k8s-role
+  name: canary-k8s-role
 rules:
   - apiGroups: ["citrix.com"]
-    resources: ["globaltrafficpolicies", "multiclustercanaries"]
+    resources: ["globaltrafficpolicies", "canaries"]
     verbs: ["get", "list", "watch", "create", "delete"]
 
 ---
@@ -12,14 +12,14 @@ rules:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
-  name: mcc-k8s-role
+  name: canary-k8s-role
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: mcc-k8s-role
+  name: canary-k8s-role
 subjects:
 - kind: ServiceAccount
-  name: mcc-k8s-role
+  name: canary-k8s-role
   namespace: default
 
 ---
@@ -27,5 +27,5 @@ subjects:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: mcc-k8s-role
+  name: canary-k8s-role
   namespace: default
