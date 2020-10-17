@@ -5,6 +5,7 @@ import logging
 import sys
 import copy
 import time
+from kubernetes import client, config
 
 log = logging.getLogger(__name__)
 out_hdlr = logging.StreamHandler(sys.stdout)
@@ -18,7 +19,6 @@ base_url = "http://127.0.0.1:8001"
 
 namespace = os.getenv("res_namespace", "default")
 external_url = os.getenv("External_kubernetes_url", base_url)
-external_token = os.getenv("External_Kuubernetes_jwt_token")
 
 def rm_gtp_crd(gtp_dict):
     log.info("Removing local GTP as remote GTP (name:{} namespace:{}) got removed.".format(gtp_dict['metadata']['name'], gtp_dict['metadata']['namespace']))
@@ -35,9 +35,19 @@ def add_gtp_crd(gtp_dict):
 
 def watch_loop():
     log.info("watching for changes for remote GTP CRDs...")
-    url = '{}/apis/citrix.com/v1beta1/globaltrafficpolicies?watch=true'.format(external_url)
-    r = requests.get(url, headers = {"Authorization":"Bearer " + external_token}, stream=True, verify=False)
+    # setup for listening for GTPs.
+
+    external_token = os.getenv("External_Kuubernetes_jwt_token")
+    aConfiguration = client.Configuration()
+    aConfiguration.host = external_url
+    aConfiguration.verify_ssl = False
+    aConfiguration.api_key = {"authorization": "Bearer " + external_token}
+    aApiClient = client.ApiClient(aConfiguration)
+
     # We issue the request to the API endpoint and keep the conenction open
+    w = watch.Watch()
+
+    for event in w.stream(aApiClient.list_dwpod_for_all_namespaces, timeout_seconds=10):
     for line in r.iter_lines():
         obj = json.loads(line)
         # We examine the type part of the object to see if it is MODIFIED
