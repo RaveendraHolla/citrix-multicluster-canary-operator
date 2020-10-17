@@ -6,6 +6,7 @@ import logging
 import sys
 import copy
 import time
+import urllib3
 
 log = logging.getLogger(__name__)
 out_hdlr = logging.StreamHandler(sys.stdout)
@@ -13,9 +14,13 @@ out_hdlr.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
 out_hdlr.setLevel(logging.INFO)
 log.addHandler(out_hdlr)
 log.setLevel(logging.INFO)
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-
-base_url = "http://127.0.0.1:8001"
+# Kubernetes URL.
+base_url = "https://"+os.getenv("KUBERNETES_SERVICE_HOST") + ":" + os.getenv("KUBERNETES_SERVICE_PORT")
+# Read serviceaccount access token.
+with open("/var/run/secrets/kubernetes.io/serviceaccount/token") as f:
+        token = f.read()
 
 namespace = os.getenv("res_namespace", "default")
 ingress_adc_ip = os.getenv("NS_IP")
@@ -53,16 +58,16 @@ def increase_traffic_percentage(gtp_dict, gtp_old_destination, gtp_new_destinati
 def apply_gtp(gtp_dict, gtp_name, gtp_namespace):
     '''This will delete the existing GTP and create the new GTP. TODO: Patching existing GTP'''
     url = '{}/apis/citrix.com/v1beta1/namespaces/{}/globaltrafficpolicies/{}'.format(base_url, gtp_namespace, gtp_name)
-    retval = requests.delete(url)
+    retval = requests.delete(url, headers = {"Authorization":"Bearer " + token}, verify=False)
     if gtp_dict['metadata'].get('resourceVersion') is not None:
         gtp_dict['metadata'].pop('resourceVersion')
     url = '{}/apis/citrix.com/v1beta1/namespaces/{}/globaltrafficpolicies'.format(base_url, gtp_namespace)
-    header = {"Content-Type": "application/json"}
-    requests.post(url, headers=header, json=gtp_dict)
+    header = {"Content-Type": "application/json", "Authorization":"Bearer " + token}
+    requests.post(url, headers=header, json=gtp_dict, verify=False)
 
 def read_existing_gtp(gtp_name, gtp_namespace):
     url = '{}/apis/citrix.com/v1beta1/namespaces/{}/globaltrafficpolicies/{}'.format(base_url, gtp_namespace, gtp_name)
-    r = requests.get(url)
+    r = requests.get(url, headers = {"Authorization":"Bearer " + token}, verify=False)
     return r.json()
 
 def calculate_health_score(lbname, interval):
@@ -115,7 +120,7 @@ def watch_loop():
                 url = '{}/apis/citrix.com/v1beta1/multiclustercanaries?watch=true'.format(base_url)
             else:
                 url = '{}/apis/citrix.com/v1beta1/multiclustercanaries?resourceVersion={}&watch=true'.format(base_url, resource_version)
-            r = requests.get(url, stream=True)
+            r = requests.get(url, headers = {"Authorization":"Bearer " + token}, stream=True, verify=False)
             # We issue the request to the API endpoint and keep the conenction open
             for line in r.iter_lines():
                 obj = json.loads(line)
