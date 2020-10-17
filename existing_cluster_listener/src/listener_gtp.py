@@ -5,6 +5,7 @@ import logging
 import sys
 import copy
 import time
+import urllib3
 
 log = logging.getLogger(__name__)
 out_hdlr = logging.StreamHandler(sys.stdout)
@@ -12,19 +13,22 @@ out_hdlr.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
 out_hdlr.setLevel(logging.INFO)
 log.addHandler(out_hdlr)
 log.setLevel(logging.INFO)
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-
-base_url = "http://127.0.0.1:8001"
+base_url = "https://"+os.getenv("KUBERNETES_SERVICE_HOST") + ":" + os.getenv("KUBERNETES_SERVICE_PORT")
 
 namespace = os.getenv("res_namespace", "default")
 external_url = os.getenv("External_kubernetes_url", base_url)
 external_token = os.getenv("External_Kuubernetes_jwt_token")
 
+with open("/var/run/secrets/kubernetes.io/serviceaccount/token") as f:
+        internal_token = f.read()
+
 def rm_gtp_crd(gtp_dict):
     try:
         log.info("Removing local GTP as remote GTP (name:{} namespace:{}) got removed.".format(gtp_dict['metadata']['name'], gtp_dict['metadata']['namespace']))
         url = '{}/apis/citrix.com/v1beta1/namespaces/{}/globaltrafficpolicies/{}'.format(base_url, gtp_dict['metadata']['namespace'], gtp_dict['metadata']['name'])
-        retval = requests.delete(url)
+        retval = requests.delete(url, headers = {"Authorization":"Bearer " + internal_token}, verify=False)
     except Exception as e:
         log.info("Exception during removing gtp_crd. %s", e)
 
@@ -34,12 +38,12 @@ def add_gtp_crd(gtp_dict):
         if gtp_dict['metadata'].get('resourceVersion') is not None:
             gtp_dict['metadata'].pop('resourceVersion')
         url = '{}/apis/citrix.com/v1beta1/namespaces/{}/globaltrafficpolicies'.format(base_url, gtp_dict['metadata']['namespace'])
-        header = {"Content-Type": "application/json"}
-        requests.post(url, headers=header, json=gtp_dict)
+        header = {"Content-Type": "application/json", "Authorization":"Bearer " + internal_token}
+        requests.post(url, headers=header, json=gtp_dict, verify=False)
     except Exception as e:
         log.info("Exception during adding gtp_crd. %s", e)
 
-def get_resource_version():
+def get_gtp_resource_version_from_remote_cluster():
     try:
         url = '{}/apis/citrix.com/v1beta1/globaltrafficpolicies'.format(external_url)
         r = requests.get(url, headers = {"Authorization":"Bearer " + external_token}, verify=False)
@@ -57,7 +61,7 @@ def watch_loop():
     log.info("watching for changes for remote GTP CRDs...")
     while True:
         try:
-            resource_version = get_resource_version()
+            resource_version = get_gtp_resource_version_from_remote_cluster()
             url = '{}/apis/citrix.com/v1beta1/globaltrafficpolicies?resourceVersion={}&watch=true'.format(external_url, resource_version)
             r = requests.get(url, headers = {"Authorization":"Bearer " + external_token}, stream=True, verify=False)
             # We issue the request to the API endpoint and keep the conenction open
