@@ -20,6 +20,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 base_url = token = namespace = ingress_adc_ip = ingress_adc_user = ingress_adc_password = None
 
 def init_kubernetes_params():
+    global namespace, base_url, token
     namespace = os.getenv("res_namespace", "default")
     base_url = "https://"+os.getenv("KUBERNETES_SERVICE_HOST") + ":" + os.getenv("KUBERNETES_SERVICE_PORT")
     # Read serviceaccount access token.
@@ -27,6 +28,7 @@ def init_kubernetes_params():
         token = f.read()
 
 def init_adc_params():
+    global ingress_adc_ip, ingress_adc_user, ingress_adc_password
     ingress_adc_ip = os.getenv("NS_IP")
     ingress_adc_user = os.getenv("NS_USER")
     ingress_adc_password = os.getenv("NS_PASSWORD")
@@ -90,8 +92,8 @@ def calculate_health_score(lbname, interval):
     final_stat = final_stat.json()
     # compare them. Decide the health.
     invalidrequestresponse = int(final_stat["lbvserver"][0]["invalidrequestresponse"]) + int(final_stat["lbvserver"][0]["invalidrequestresponsedropped"]) - int(starting_stat["lbvserver"][0]["invalidrequestresponse"]) + int(starting_stat["lbvserver"][0]["invalidrequestresponsedropped"])
-    totalrequests = int(final_stat["lbvserver"][0]["totalrequests"]) + int(final_stat["lbvserver"][0]["totalrequests"]) - int(starting_stat["lbvserver"][0]["totalrequests"]) + int(starting_stat["lbvserver"][0]["totalrequests"])
-    return (totalrequests - invalidrequestresponse)*100/totalrequests if totalrequests > 0 else 100
+    totalrequests = int(final_stat["lbvserver"][0]["totalrequests"]) + - int(starting_stat["lbvserver"][0]["totalrequests"])
+    return (totalrequests - invalidrequestresponse)*100/totalrequests if totalrequests > 0 else 0
 
 def handle_canary_crd(canary_cr):
     try:

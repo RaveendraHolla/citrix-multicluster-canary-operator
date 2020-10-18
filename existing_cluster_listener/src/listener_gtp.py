@@ -74,8 +74,10 @@ def watch_loop():
                 else:
                     event_type = obj.get('type')
                     if event_type == "ADDED":
+                        time.sleep(1)
                         add_gtp_crd(obj['object'])
                     if event_type == "DELETED":
+                        time.sleep(1)
                         rm_gtp_crd(obj['object'])
         except Exception as e:
             log.info("Exception during listening for multi-cluster canary CRDs. %s", e)
