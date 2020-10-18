@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: canary-operator
+  labels:
+    app: operator
+spec:
+  selector:
+    matchLabels:
+      app: operator
+  template:
+    metadata:
+      labels:
+        app: operator
+    spec:
+      serviceAccountName: canary-k8s-role
+      containers:
+      - name: canary
+        image: citrix-canary-operator
+        imagePullPolicy: IfNotPresent
+        # command: [ "/bin/bash", "-c", "--" ]
+        # args: [ "apt-get -y install vim;while true; do sleep 30; done;" ]
+        env:
+          # teller mode: need to deployed in the new cluster.
+          - name: "MODE"
+            value: "teller"
+          - name: "NS_IP"
+            value: "x.x.x.x"
+          - name: "NS_USER"
+            value: "ADC_USER_NAME"
+          - name: "NS_PASSWORD"
+            value: "ADC_USER_PASSWORD"

@@ -1,5 +1,4 @@
 import requests
-import os
 import json
 import logging
 import sys
@@ -15,35 +14,26 @@ log.addHandler(out_hdlr)
 log.setLevel(logging.INFO)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-base_url = "https://"+os.getenv("KUBERNETES_SERVICE_HOST") + ":" + os.getenv("KUBERNETES_SERVICE_PORT")
-
-namespace = os.getenv("res_namespace", "default")
-external_url = os.getenv("External_kubernetes_url", base_url)
-external_token = os.getenv("External_Kuubernetes_jwt_token")
-
-with open("/var/run/secrets/kubernetes.io/serviceaccount/token") as f:
-        internal_token = f.read()
-
-def rm_gtp_crd(gtp_dict):
+def rm_gtp_crd(gtp_dict, params):
     try:
         log.info("Removing local GTP as remote GTP (name:{} namespace:{}) got removed.".format(gtp_dict['metadata']['name'], gtp_dict['metadata']['namespace']))
-        url = '{}/apis/citrix.com/v1beta1/namespaces/{}/globaltrafficpolicies/{}'.format(base_url, gtp_dict['metadata']['namespace'], gtp_dict['metadata']['name'])
-        retval = requests.delete(url, headers = {"Authorization":"Bearer " + internal_token}, verify=False)
+        url = '{}/apis/citrix.com/v1beta1/namespaces/{}/globaltrafficpolicies/{}'.format(params["base_url"], gtp_dict['metadata']['namespace'], gtp_dict['metadata']['name'])
+        retval = requests.delete(url, headers = {"Authorization":"Bearer " + params["token"]}, verify=False)
     except Exception as e:
         log.info("Exception during removing gtp_crd. %s", e)
 
-def add_gtp_crd(gtp_dict):
+def add_gtp_crd(gtp_dict, params):
     try:
         log.info("Crating remote GTP (name:{} namespace:{}) locally.".format(gtp_dict['metadata']['name'], gtp_dict['metadata']['namespace']))
         if gtp_dict['metadata'].get('resourceVersion') is not None:
             gtp_dict['metadata'].pop('resourceVersion')
-        url = '{}/apis/citrix.com/v1beta1/namespaces/{}/globaltrafficpolicies'.format(base_url, gtp_dict['metadata']['namespace'])
-        header = {"Content-Type": "application/json", "Authorization":"Bearer " + internal_token}
+        url = '{}/apis/citrix.com/v1beta1/namespaces/{}/globaltrafficpolicies'.format(params["base_url"], gtp_dict['metadata']['namespace'])
+        header = {"Content-Type": "application/json", "Authorization":"Bearer " + params["token"]}
         requests.post(url, headers=header, json=gtp_dict, verify=False)
     except Exception as e:
         log.info("Exception during adding gtp_crd. %s", e)
 
-def get_gtp_resource_version_from_remote_cluster():
+def get_gtp_resource_version_from_remote_cluster(external_url, external_token):
     try:
         url = '{}/apis/citrix.com/v1beta1/globaltrafficpolicies'.format(external_url)
         r = requests.get(url, headers = {"Authorization":"Bearer " + external_token}, verify=False)
@@ -57,13 +47,13 @@ def get_gtp_resource_version_from_remote_cluster():
         log.info(f"Exception during requesting {url} {e}")
         return "0"
 
-def watch_loop():
+def gtp_watch_loop(params):
     log.info("watching for changes for remote GTP CRDs...")
     while True:
         try:
-            resource_version = get_gtp_resource_version_from_remote_cluster()
-            url = '{}/apis/citrix.com/v1beta1/globaltrafficpolicies?resourceVersion={}&watch=true'.format(external_url, resource_version)
-            r = requests.get(url, headers = {"Authorization":"Bearer " + external_token}, stream=True, verify=False)
+            resource_version = get_gtp_resource_version_from_remote_cluster(params["external_url"], params["external_token"])
+            url = '{}/apis/citrix.com/v1beta1/globaltrafficpolicies?resourceVersion={}&watch=true'.format(params["external_url"], resource_version)
+            r = requests.get(url, headers = {"Authorization":"Bearer " + params["external_token"]}, stream=True, verify=False)
             # We issue the request to the API endpoint and keep the conenction open
             for line in r.iter_lines():
                 obj = json.loads(line)
@@ -75,14 +65,11 @@ def watch_loop():
                     event_type = obj.get('type')
                     if event_type == "ADDED":
                         time.sleep(1)
-                        add_gtp_crd(obj['object'])
+                        add_gtp_crd(obj['object'], params)
                     if event_type == "DELETED":
                         time.sleep(1)
-                        rm_gtp_crd(obj['object'])
+                        rm_gtp_crd(obj['object'], params)
         except Exception as e:
             log.info("Exception during listening for multi-cluster canary CRDs. %s", e)
             time.sleep(1)
             log.info("Retrying...")
-
-if __name__ == "__main__": 
-    watch_loop()
