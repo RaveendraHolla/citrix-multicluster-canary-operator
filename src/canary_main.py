@@ -23,4 +23,4 @@ if __name__ == "__main__":
     if params["mode"] == "listener":
         gtp_listener.gtp_watch_loop(params)
     else:
-        canary.canary_watch_loop(params)
+        canary_listener.canary_watch_loop(params)
