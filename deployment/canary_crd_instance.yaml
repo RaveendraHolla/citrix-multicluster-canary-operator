@@ -5,8 +5,8 @@ metadata:
 spec:
   gtpName: gtp1
   gtpNamespace: default
-  sourceCluster: 'app1.default.east.cluster1'
-  destinationCluster: 'app1.default.west.cluster2'
-  healthMonitoringLbName: "lb1"
-  healthMonitoringInterval: 1
+  sourceCluster: 'app1.default.east.red'
+  destinationCluster: 'app1.default.west.blue'
+  healthMonitoringLbName: "CIC-app1-ingress_default_80_CIC-app1_default_80_svc"
+  healthMonitoringInterval: 20
   healthScoreThreshold: 90
