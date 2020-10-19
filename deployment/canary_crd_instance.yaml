@@ -3,7 +3,7 @@ kind: canary
 metadata:
   name: canary-for-app1-svc
 spec:
-  gtpName: gtp1
+  gtpName: app1
   gtpNamespace: default
   sourceCluster: 'app1.default.east.red'
   destinationCluster: 'app1.default.west.blue'
