@@ -1,0 +1,12 @@
+apiVersion: citrix.com/v1beta1
+kind: canary
+metadata:
+  name: canary-for-app1-svc
+spec:
+  gtpName: app1
+  gtpNamespace: default
+  sourceCluster: 'app1.default.east.red'
+  destinationCluster: 'app1.default.west.blue'
+  healthMonitoringLbName: "CIC-app1-ingress_default_80_CIC-app1_default_80_svc"
+  healthMonitoringInterval: 20
+  healthScoreThreshold: 90

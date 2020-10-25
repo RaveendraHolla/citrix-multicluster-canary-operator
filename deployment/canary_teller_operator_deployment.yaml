@@ -13,22 +13,17 @@ spec:
       labels:
         app: operator
     spec:
-      serviceAccountName: mcc-k8s-role
+      serviceAccountName: canary-k8s-role
       containers:
-      - name: proxycontainer
-        image: lachlanevenson/k8s-kubectl
-        imagePullPolicy: IfNotPresent
-        command: ["kubectl","proxy","--port=8001"]
       - name: canary
         image: citrix-canary-operator
         imagePullPolicy: IfNotPresent
-        command: [ "/bin/bash", "-c", "--" ]
-        args: [ "apt-get -y install vim;while true; do sleep 30; done;" ]
+        # command: [ "/bin/bash", "-c", "--" ]
+        # args: [ "apt-get -y install vim;while true; do sleep 30; done;" ]
         env:
-          - name: res_namespace
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.namespace
+          # teller mode: need to deployed in the new cluster.
+          - name: "MODE"
+            value: "teller"
           - name: "NS_IP"
             value: "x.x.x.x"
           - name: "NS_USER"
