@@ -39,5 +39,16 @@ Let us consider a deployment, where an app app1 is already deployed on 2 cluster
 
 ![EXISTING-MULTI-CLUSTER-DEPLOYMENT](images/existing_deployment.png)
 
+- CIC (Citrix Ingress Controller) is responsible for configuring VIP in each cluster.
+- MCC (MultiCluster Controller) configures GSLB configuration across ADCs which are ADNS endpoints for app app1. they define the policy for DNS response. This is controlled by GlobalTrafficPolicies, also called as GTP. Based on this a DNS response will have VIP IP of red ADC or VIP IP of GREEN ADC.
+- When a user resolves hostname for app1.example.com, DNS query will end up in one of the GSLB ADCs. GSLB ADC will return the VIP of one of the clusters based on GSLB configuraiont.
 
+## Deploy canary operator:
 
+Deploy Canary operator in Listener mode in all existing clusters and Canary operator in the teller mode in the new cluster.
+### Canary operator in listener mode.
+In the listener mode, canary-operator will listen for any changes for GTP in the new cluster and replicate that back in all other clusters. For this, External_Kuubernetes_jwt_token has to be provided in the yaml, which will help operator to listen for GTP events. Sample RBAC is [here](canary_rbac.yaml)
+Example deployment file for canary operator in listener-mode is [here](canary_listener_operator_deployment.yaml)
+
+### Canary operator in the teller mode.
+In the teller mode, canary operator listener will listen for Canary CRDs and the modify GTP to tweek the percentage of traffic for various clusters. Sample deployment file for this mode is [here](canary_teller_operator_deployment.yaml)
