@@ -10,13 +10,23 @@ Until about thirty years ago, coal miners used to go down to work carrying canar
 
 ### Canary deployments as CICD strategy
 
-## Use-case:
+#### Benefits
+- Minimizes blast radius of new releases in production
+- Gives insight into user experience from small sample of users
+- Gives ability to roll-back releases if things don’t work out
+- Gives Developers time to roll-out or roll-back releases carefully
 
-### Use-case-1:
-Customer has hosted an application in an on-prem Kubernetes cluster, now he wants to migrate that application to a Kubernetes cluster on cloud. He wants migration to be smooth and what to evaluate the build as he redirects a portion of the traffic towards new cluster.
+#### Use cases
+- New version of app with new features or bug fixes
+- Infrastructure updates (upgrade of databases or operating systems or Kubernetes itself)
+- Bring up new PoPor Region or Availability zones
+- Bring up multi cloud or hybrid cloud setups
 
-### Use-case-2:
-Customer hosted an app in multiple Kubernetes clusters. Now, he wants to migrate that app to the latest version of the Kubernetes cluster. He wants migration to be smooth and what to evaluate the build as he redirects a portion of the traffic towards new cluster.
+#### Customer scenarios
+
+- Customer has hosted an application in an on-prem Kubernetes cluster, now he wants to migrate that application to a Kubernetes cluster on cloud. He wants migration to be smooth and what to evaluate the build as he redirects a portion of the traffic towards new cluster.
+
+- Customer hosted an app in multiple Kubernetes clusters. Now, he wants to migrate that app to the latest version of the Kubernetes cluster. He wants migration to be smooth and what to evaluate the build as he redirects a portion of the traffic towards new cluster.
 
 ## Existing Deployment:
 An App is hosted on multiple clusters 
