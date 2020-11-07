@@ -54,4 +54,5 @@ Example deployment file for canary operator in listener-mode is [here](deploymen
 In the teller mode, canary operator listener will listen for Canary CRDs and the modify GTP to tweek the percentage of traffic for various clusters. Sample deployment file for this mode is [here](deployment/canary_teller_operator_deployment.yaml)
 
 ## Deploy Canary Custom Resource Definition:
-Do a Kubectl apply to create a [canary](deployment/canary_crd_spec.yaml)custom resource definition in your environment.
+Do a Kubectl apply to create a [canary](deployment/canary_crd_spec.yaml) custom resource definition in your environment.
+
