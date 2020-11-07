@@ -63,3 +63,17 @@ Create a Canary CR instance. A sample instance is [here](deployment/canary_crd_i
 ## Example topology diagram after installing canary components:
 
 ![CANARY-MULTI-CLUSTER-DEPLOYMENT](images/canary_deployment.png)
+
+## References
+
+- [Multi cluster ingress solution]
+(https://developer-docs.citrix.com/projects/citrix-k8s-ingress-controller/en/latest/multicluster/multi-cluster/)
+- [Citrix cloud native solution overview]
+(https://www.citrix.com/products/citrix-adc/resources/microservices-app-delivery-best-practices.html)
+- [Get started with Citrix cloud native solution with simple examples]
+(https://github.com/citrix/cloud-native-getting-started)
+- [Citrix ingress controller]
+(https://developer-docs.citrix.com/projects/citrix-k8s-ingress-controller/en/latest/)
+- [Citrix ADC documentation]
+(https://docs.citrix.com/en-us/citrix-adc/current-release.html)
+
