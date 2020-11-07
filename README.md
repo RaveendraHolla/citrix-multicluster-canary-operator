@@ -2,7 +2,11 @@
 This will build a canary operator on top of Citrix multicluster GSLB based CRDs which help divert traffic from one Cluster to another.
 
 ## Description
-This is a python operator which leverages on cloud native Citrix multi-cluster ingress solutions to create a canary strategy for migrating app traffic from one cluster to other.
+This is a python based operator which leverages on cloud native Citrix multi-cluster ingress solutions to create a canary strategy for migrating app traffic from one cluster to other. Let us call cluster from which we need to phase-out an app as 'Source cluster' and the cluster to which we need to phase-in that app as the 'destination cluster'. High level idea is like this:
+- Operator will be installed in 'teller' mode in the destination-cluster. It will be waiting for canary CRDs.
+- Operator will be deployed in 'listener' mode in all remaining clusters. This will listen for any GTP (Global Traffic Policy CRD) changes in the destination cluster and apply the same in the local cluster.
+- Now, apply Canary CRD object on the destination cluster. Canary operator will read this, modify the GTP by changing the proportions of traffic distribution. It waits for certain amount of time. It verifies counters from Citrix ADC to confirm that, lb vserver representing the app in the destination cluster is healthy and does not have any errors.
+- If there are no errors, then, it will continue to increase traffic percentage for destination cluster and reduce it from source cluster. If Health goes below given threshold, it will rollback and retain the original GTP definition.
 
 ## What are Canary deployments?
 
@@ -66,14 +70,14 @@ Create a Canary CR instance. A sample instance is [here](deployment/canary_crd_i
 
 ## References
 
-- [Multi cluster ingress solution]
-(https://developer-docs.citrix.com/projects/citrix-k8s-ingress-controller/en/latest/multicluster/multi-cluster/)
-- [Citrix cloud native solution overview]
-(https://www.citrix.com/products/citrix-adc/resources/microservices-app-delivery-best-practices.html)
-- [Get started with Citrix cloud native solution with simple examples]
-(https://github.com/citrix/cloud-native-getting-started)
-- [Citrix ingress controller]
-(https://developer-docs.citrix.com/projects/citrix-k8s-ingress-controller/en/latest/)
-- [Citrix ADC documentation]
-(https://docs.citrix.com/en-us/citrix-adc/current-release.html)
+- Multi cluster ingress solution:
+https://developer-docs.citrix.com/projects/citrix-k8s-ingress-controller/en/latest/multicluster/multi-cluster/
+- Citrix cloud native solution overview:
+https://www.citrix.com/products/citrix-adc/resources/microservices-app-delivery-best-practices.html
+- Get started with Citrix cloud native solution with simple examples:
+https://github.com/citrix/cloud-native-getting-started
+- Citrix ingress controller:
+https://developer-docs.citrix.com/projects/citrix-k8s-ingress-controller/en/latest/
+- Citrix ADC documentation:
+https://docs.citrix.com/en-us/citrix-adc/current-release.html
 
