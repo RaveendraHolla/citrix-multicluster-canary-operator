@@ -2,7 +2,7 @@
 This will build a canary operator on top of Citrix multicluster GSLB based CRDs which help divert traffic from one Cluster to another.
 
 ## Description
-Citrix multi-cluster ingress solution helps hosting the app on multiple Kubernetes clusters. Citrix ADC GSLB technology helps in smartly redirecting the DNS traffic to most optimal Kubernetes cluster. Citrix multi-cluster ingress solution uses a Custom Resource Definition called "Global Traffic Policy"(GTP) to define multi-cluster distribution strategy. This operator which generates GTPs with different proportions to increase or decrease traffic to a specific cluster.
+Citrix multi-cluster ingress solution helps hosting the app on multiple Kubernetes clusters. Citrix ADC GSLB technology helps in smartly redirecting the DNS traffic to most optimal Kubernetes cluster. Citrix multi-cluster ingress solution uses a Custom Resource Definition called "Global Traffic Policy"(GTP) to define multi-cluster distribution strategy. This operator listens on a new CRD called Canary and generates GTPs with different proportions to increase or decrease traffic to a specific cluster.
 
 Let us call the cluster from which we need to phase-out an app as 'Source cluster' and the cluster to which we need to phase-in traffic for the same app as the 'destination cluster'. High level idea is like this:
 - Operator will be installed in 'teller' mode in the destination-cluster. It will be waiting for canary Custom Resource Objects.
