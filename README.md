@@ -44,11 +44,14 @@ Let us consider a deployment, where an app app1 is already deployed on 2 cluster
 - When a user resolves hostname for app1.example.com, DNS query will end up in one of the GSLB ADCs. GSLB ADC will return the VIP of one of the clusters based on GSLB configuraiont.
 
 ## Deploy canary operator:
-
 Deploy Canary operator in Listener mode in all existing clusters and Canary operator in the teller mode in the new cluster.
+
 ### Canary operator in listener mode.
-In the listener mode, canary-operator will listen for any changes for GTP in the new cluster and replicate that back in all other clusters. For this, External_Kuubernetes_jwt_token has to be provided in the yaml, which will help operator to listen for GTP events. Sample RBAC is [here](canary_rbac.yaml)
-Example deployment file for canary operator in listener-mode is [here](canary_listener_operator_deployment.yaml)
+In the listener mode, canary-operator will listen for any changes for GTP in the new cluster and replicate that back in all other clusters. For this, External_Kuubernetes_jwt_token has to be provided in the yaml, which will help operator to listen for GTP events. Sample RBAC is [here](deployment/canary_rbac.yaml)
+Example deployment file for canary operator in listener-mode is [here](deployment/canary_listener_operator_deployment.yaml)
 
 ### Canary operator in the teller mode.
-In the teller mode, canary operator listener will listen for Canary CRDs and the modify GTP to tweek the percentage of traffic for various clusters. Sample deployment file for this mode is [here](canary_teller_operator_deployment.yaml)
+In the teller mode, canary operator listener will listen for Canary CRDs and the modify GTP to tweek the percentage of traffic for various clusters. Sample deployment file for this mode is [here](deployment/canary_teller_operator_deployment.yaml)
+
+## Deploy Canary Custom Resource Definition:
+Do a Kubectl apply to create a [canary](deployment/canary_crd_spec.yaml)custom resource definition in your environment.
