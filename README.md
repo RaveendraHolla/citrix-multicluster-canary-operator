@@ -29,6 +29,15 @@ Until about thirty years ago, coal miners used to go down to work carrying canar
 - Customer hosted an app in multiple Kubernetes clusters. Now, he wants to migrate that app to the latest version of the Kubernetes cluster. He wants migration to be smooth and what to evaluate the build as he redirects a portion of the traffic towards new cluster.
 
 ## Existing Deployment:
-An App is hosted on multiple clusters 
+
+This solution expects an app hosted in multicluster environment, and traffic distribution is achieved through [Citrix multi-cluster ingress solution](https://developer-docs.citrix.com/projects/citrix-k8s-ingress-controller/en/latest/multicluster/multi-cluster/). Now, customer brings up a new cluster and wants to move the traffic from one of the clusters to a new cluster.
+
+### Example topology:
+Let us consider a deployment, where an app app1 is already deployed on 2 clusters in 2 data centers, let us call them as red cluster and green cluster. Now, same app app1 is brought up in a new cluster called 'blue' cluster. Now, we demonstrate how to gradually phase-out app app1 in Red data center, and phase-in same app present in Blue data center.
+
+### Example topology diagram:
+
+![EXISTING-MULTI-CLUSTER-DEPLOYMENT](images/existing_deployment.png)
+
 
 
