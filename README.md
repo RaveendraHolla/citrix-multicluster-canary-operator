@@ -53,6 +53,13 @@ Example deployment file for canary operator in listener-mode is [here](deploymen
 ### Canary operator in the teller mode.
 In the teller mode, canary operator listener will listen for Canary CRDs and the modify GTP to tweek the percentage of traffic for various clusters. Sample deployment file for this mode is [here](deployment/canary_teller_operator_deployment.yaml)
 
-## Deploy Canary Custom Resource Definition:
+## Deploy Canary Custom Resource Definition and the instance:
 Do a Kubectl apply to create a [canary](deployment/canary_crd_spec.yaml) custom resource definition in your environment.
 
+    kubectl apply -f https://raw.githubusercontent.com/RaveendraHolla/citrix-multicluster-canary-operator/main/deployment/canary_crd_spec.yaml?token=AMHRBHXJYTYSAMTTNIC6UIK7UZHA6
+
+Create a Canary CR instance. A sample instance is [here](deployment/canary_crd_instance.yaml). Once applied, this will move the traffic slowly from source cluster to destination cluster and validating the build with ADC.
+
+## Example topology diagram after installing canary components:
+
+![CANARY-MULTI-CLUSTER-DEPLOYMENT](images/canary_deployment.png)
