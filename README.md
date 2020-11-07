@@ -2,7 +2,9 @@
 This will build a canary operator on top of Citrix multicluster GSLB based CRDs which help divert traffic from one Cluster to another.
 
 ## Description
-This is a python based operator which leverages cloud native Citrix multi-cluster ingress solutions to create a canary strategy for migrating app traffic from one cluster to another. Let us call the cluster from which we need to phase-out an app as 'Source cluster' and the cluster to which we need to phase-in traffic for the same app as the 'destination cluster'. High level idea is like this:
+Citrix multi-cluster ingress solution helps hosting the app on multiple Kubernetes clusters. Citrix ADC GSLB technology helps in smartly redirecting the DNS traffic to most optimal Kubernetes cluster. Citrix multi-cluster ingress solution uses a Custom Resource Definition called "Global Traffic Policy"(GTP) to define multi-cluster distribution strategy. This operator which generates GTPs with different proportions to increase or decrease traffic to a specific cluster.
+
+Let us call the cluster from which we need to phase-out an app as 'Source cluster' and the cluster to which we need to phase-in traffic for the same app as the 'destination cluster'. High level idea is like this:
 - Operator will be installed in 'teller' mode in the destination-cluster. It will be waiting for canary Custom Resource Objects.
 - Operator will be deployed in 'listener' mode in all remaining clusters. This will listen for any GTP (Global Traffic Policy CRD) changes in the destination cluster and apply the same in the local cluster.
 - Now, apply the Canary CR object on the destination cluster. The Canary operator will read this, modify the GTP by changing the proportions of traffic distribution and reapply it. Then, the same modification will be reflected across the clusters due to listener-mode-canary-operators running in all other clusters. It waits for a certain amount of time (as dictated in the Canary CR object). It verifies counters from Citrix ADC to confirm that, lb vserver representing the app in the destination cluster is healthy and does not have any errors.
